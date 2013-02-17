@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string-array name="slope_line_array">
+
+        <item>7:1 (14.3%) - Transition Surface</item>
+        <item>20:1 (5%) - Utility and Visual Runways</item>
+        <item>34:1 (2.9%) - Non-Precision Instrument Runways</item>
+        <item>40:1 (2.5%) - Departure Surface</item>
+        <item>50:1 (2%) - Precision Instrument Runways</item>
+        <item>62.5:1 (1.6%) - One Engine Inoperative Surface</item>
+
+<!--
+        <item>7</item>
+        <item>50</item>
+-->        
+	</string-array>
+</resources>

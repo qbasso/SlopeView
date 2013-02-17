@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">SlopeVIEW</string>
+    <string name="app_name">SlopeVIEW</string>
+    <string name="slope_line_option_title">Slope Line Option</string>
+
+    <string name="alert_dialog_ok">OK</string>
+    <string name="alert_dialog_cancel">Cancel</string>
+    <string name="alert_dialog_agree">Agree</string>
+    <string name="alert_dialog_disagree">Disagree</string>
+    <string name="alert_dialog_agreetitle">Important:Terms of Service and Disclaimer</string>
+    <string name="alert_dialog_agreemsg">By continuing, you agree that this device is not survey grade equipment and is intended for initial surface evaluation, maintenance and documentation of airport surfaces.
+        Consult a licensed surveyor for exact measurements.</string>
+    
+    
+</resources>
