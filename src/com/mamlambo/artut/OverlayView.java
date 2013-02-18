@@ -19,7 +19,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
-import android.location.LocationManager;
 import android.text.Layout.Alignment;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -27,8 +26,6 @@ import android.util.Log;
 import android.view.View;
 
 import com.mamlambo.globals.Global;
-import com.mamlambo.gps.SlopeViewLocationManager;
-import com.mamlambo.gps.SlopeViewLocationManager.LocationResult;
 
 public class OverlayView extends View implements SensorEventListener {
 
@@ -67,7 +64,6 @@ public class OverlayView extends View implements SensorEventListener {
 	private TextPaint contentPaint;
 	private Paint targetPaint;
 
-	private SlopeViewLocationManager slopeLocationManager = new SlopeViewLocationManager();
 	private Location slopeCurMyLocation;
 
 	private static final int filterQueueLen = 10;
@@ -87,8 +83,6 @@ public class OverlayView extends View implements SensorEventListener {
 		gyroSensor = sensors.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
 		startSensors();
-		startGPS();
-
 		// get some camera parameters
 		Camera camera = Camera.open();
 		Camera.Parameters params = camera.getParameters();
@@ -200,35 +194,12 @@ public class OverlayView extends View implements SensorEventListener {
 	// this is not an override
 	public void onPause() {
 		sensors.unregisterListener(this);
-		slopeLocationManager.stopLocationListening();
 	}
 
 	// this is not an override
 	public void onResume() {
 		startSensors();
-		startGPS();
 	}
-
-	// GPS Location Detecting Module
-	public void startGPS() {
-		slopeLocationManager.getLocation(this.context, locationResult);
-	}
-
-	public LocationResult locationResult = new LocationResult() {
-		@Override
-		public void gotLocation(final Location location) {
-
-			if (location == null) {
-				return;
-			}
-
-			if (slopeCurMyLocation == null)
-				slopeCurMyLocation = new Location(LocationManager.GPS_PROVIDER);
-			slopeCurMyLocation.setLatitude(location.getLatitude());
-			slopeCurMyLocation.setLongitude(location.getLongitude());
-			slopeCurMyLocation.setAltitude(location.getAltitude());
-		}
-	};
 
 	// Generate Bitmap File
 	void generateBitmapWithSlopeInfo(String filename, String infofilename) {
@@ -433,7 +404,6 @@ public class OverlayView extends View implements SensorEventListener {
 				{
 					// draw cross hair
 					canvas.save();
-
 					// draw cross hair
 					float crossWidth = this.getWidth() / 4.0f;
 					float crossHeight = this.getHeight() / 8.0f;
@@ -551,6 +521,10 @@ public class OverlayView extends View implements SensorEventListener {
 				480, Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
 		textBox.draw(canvas);
 		canvas.restore();
+	}
+
+	public void setLocation(Location mCurrentLocation) {
+		slopeCurMyLocation = mCurrentLocation;
 	}
 
 }

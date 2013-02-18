@@ -19,7 +19,9 @@ import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
-import android.hardware.Camera.ShutterCallback;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,6 +44,8 @@ public class ArtutActivity extends Activity {
 	private int slopeMeasureType = 0;
 	private OverlayView arContent;
 	private ArDisplayView arDisplay;
+	private LocationManager mLocationManager;
+	private Location mCurrentLocation = null;
 
 	public static ArtutActivity Instance;
 
@@ -52,7 +56,6 @@ public class ArtutActivity extends Activity {
 			dir.mkdirs();
 			long timeMillis = System.currentTimeMillis();
 			Bitmap screen;
-
 			OutputStream fout = null;
 			String filename;
 			filename = String.format("/SlopeView_" + String.valueOf(timeMillis)
@@ -83,24 +86,47 @@ public class ArtutActivity extends Activity {
 
 		}
 	};
+	private LocationListener mLocationListener = new LocationListener() {
+
+		public void onStatusChanged(String provider, int status, Bundle extras) {
+		}
+
+		public void onProviderEnabled(String provider) {
+		}
+
+		public void onProviderDisabled(String provider) {
+		}
+
+		public void onLocationChanged(Location location) {
+			if (location != null) {
+				mCurrentLocation = location;
+				arContent.setLocation(mCurrentLocation);
+			}
+		}
+	};
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
 		setContentView(R.layout.main);
-
 		Instance = this;
-
 		FrameLayout arViewPane = (FrameLayout) findViewById(R.id.ar_view_pane);
-
 		arDisplay = new ArDisplayView(getApplicationContext(), this);
 		arViewPane.addView(arDisplay);
-
 		arContent = new OverlayView(getApplicationContext());
 		arViewPane.addView(arContent);
-
+		mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+		if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+			mLocationManager.requestLocationUpdates(
+					LocationManager.GPS_PROVIDER, 30 * 1000, 10,
+					mLocationListener);
+		} else if (mLocationManager
+				.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+			mLocationManager.requestLocationUpdates(
+					LocationManager.NETWORK_PROVIDER, 30 * 1000, 10,
+					mLocationListener);
+		}
 		/* Display a radio button group */
 		Button slopeButton = (Button) findViewById(R.id.slope);
 		slopeButton.setOnClickListener(new OnClickListener() {
@@ -178,6 +204,7 @@ public class ArtutActivity extends Activity {
 	@Override
 	protected void onPause() {
 		arContent.onPause();
+		mLocationManager.removeUpdates(mLocationListener);
 		super.onPause();
 	}
 
