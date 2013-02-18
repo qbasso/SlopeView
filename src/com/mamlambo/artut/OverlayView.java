@@ -92,7 +92,8 @@ public class OverlayView extends View implements SensorEventListener {
 		camera.release();
 
 		// paint for text
-		contentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG|Paint.LINEAR_TEXT_FLAG);
+		contentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG
+				| Paint.LINEAR_TEXT_FLAG);
 		contentPaint.setStyle(Style.FILL);
 		contentPaint.setTextAlign(Align.LEFT);
 		contentPaint.setTextSize(20);

@@ -1,9 +1,7 @@
 package com.mamlambo.artut;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 
 import android.annotation.SuppressLint;
@@ -23,15 +21,14 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
-import android.hardware.Camera.PictureCallback;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -88,14 +85,23 @@ public class ArtutActivity extends Activity {
 					arDisplay.mSize.height, Config.ARGB_8888);
 			Bitmap result = Bitmap.createBitmap(preview.getWidth(),
 					preview.getHeight(), Config.ARGB_8888);
+			int previewHeight = preview.getHeight();
+			int screenHeight = screen.getHeight();
 			Canvas c = new Canvas(result);
 			c.drawBitmap(preview, new Matrix(), null);
-			c.drawBitmap(screen, new Matrix(), null);
+			if (previewHeight - screenHeight > 0) {
+				c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
+						null);
+			}
+
 			try {
 				fout = new FileOutputStream(imageFile);
 				result.compress(Bitmap.CompressFormat.JPEG, 90, fout);
 				fout.flush();
 				fout.close();
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
+						Uri.parse("file://"
+								+ Environment.getExternalStorageDirectory())));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -179,13 +185,13 @@ public class ArtutActivity extends Activity {
 	private boolean initGPS() {
 		if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 			mLocationManager.requestLocationUpdates(
-					LocationManager.GPS_PROVIDER, 30 * 1000, 10,
+					LocationManager.GPS_PROVIDER, 5 * 1000, 10,
 					mLocationListener);
 			return true;
 		} else if (mLocationManager
 				.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
 			mLocationManager.requestLocationUpdates(
-					LocationManager.NETWORK_PROVIDER, 30 * 1000, 10,
+					LocationManager.NETWORK_PROVIDER, 5 * 1000, 10,
 					mLocationListener);
 			return true;
 		}
@@ -304,51 +310,4 @@ public class ArtutActivity extends Activity {
 		}
 		return null;
 	}
-
-	/** Handles data for jpeg picture */
-	PictureCallback jpegCallback = new PictureCallback() {
-		public void onPictureTaken(byte[] data, Camera camera) {
-			File dir = new File(Global.ARTUTIMAGE_CAPTURE_PATH);
-			dir.mkdirs();
-
-			FileOutputStream outStream = null;
-			try {
-				// long timeMillis = System.currentTimeMillis();
-				String filename;
-				// filename = String.format("%s/SlopeView_%d.jpg",
-				// Global.ARTUTIMAGE_CAPTURE_PATH, timeMillis);
-				if (Global.slopeLineMeter < 0) {
-					filename = String.format("%s/%3.6f.jpg",
-							Global.ARTUTIMAGE_CAPTURE_PATH,
-							Global.slopeLineMeter);
-				} else {
-					filename = String.format("%s/+%3.6f.jpg",
-							Global.ARTUTIMAGE_CAPTURE_PATH,
-							Global.slopeLineMeter);
-				}
-				outStream = new FileOutputStream(filename);
-				outStream.write(data);
-				outStream.close();
-
-				// String infofilename =
-				// String.format("%s/SlopeView_%d_info.jpg",
-				// Global.ARTUTIMAGE_CAPTURE_PATH, timeMillis);
-				// arContent.generateBitmapWithSlopeInfo(filename,
-				// infofilename);
-
-				Log.d(TAG, "onPictureTaken - wrote bytes: " + data.length);
-
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-			}
-			Log.d(TAG, "onPictureTaken - jpeg");
-
-			// Begin previewing
-			arDisplay.mCamera.stopPreview();
-			arDisplay.mCamera.startPreview();
-		}
-	};
 }
