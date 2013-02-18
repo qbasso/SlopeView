@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
+import android.graphics.Paint.Style;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.Sensor;
@@ -92,8 +93,10 @@ public class OverlayView extends View implements SensorEventListener {
 
 		// paint for text
 		contentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG|Paint.LINEAR_TEXT_FLAG);
+		contentPaint.setStyle(Style.FILL);
 		contentPaint.setTextAlign(Align.LEFT);
 		contentPaint.setTextSize(20);
+		contentPaint.setSubpixelText(true);
 		contentPaint.setColor(Color.RED);
 		contentPaint.setShadowLayer(1, 0, 0, Color.BLACK);
 
