@@ -8,10 +8,15 @@ import java.io.OutputStream;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -40,14 +45,25 @@ public class ArtutActivity extends Activity {
 	private static final String TAG = "ArtutActivity";
 	private static final int DIALOG_YES_NO_MESSAGE = 1;
 	private static final int DIALOG_SINGLE_CHOICE = 2;
+	private static final String ACTION_RETRY_GPS_INIT = "retry_gps_init";
 
 	private int slopeMeasureType = 0;
 	private OverlayView arContent;
 	private ArDisplayView arDisplay;
 	private LocationManager mLocationManager;
+	private AlarmManager mAlertManager;
 	private Location mCurrentLocation = null;
 
 	public static ArtutActivity Instance;
+	private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			if (ACTION_RETRY_GPS_INIT.equals(intent.getAction())) {
+				initGPS();
+			}
+		}
+	};
 
 	protected AutoFocusCallback autoFocusCallback = new AutoFocusCallback() {
 
@@ -117,15 +133,10 @@ public class ArtutActivity extends Activity {
 		arContent = new OverlayView(getApplicationContext());
 		arViewPane.addView(arContent);
 		mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-		if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-			mLocationManager.requestLocationUpdates(
-					LocationManager.GPS_PROVIDER, 30 * 1000, 10,
-					mLocationListener);
-		} else if (mLocationManager
-				.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-			mLocationManager.requestLocationUpdates(
-					LocationManager.NETWORK_PROVIDER, 30 * 1000, 10,
-					mLocationListener);
+		mAlertManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+		if (!initGPS()) {
+			mAlertManager.set(AlarmManager.RTC_WAKEUP,
+					System.currentTimeMillis(), prepareIntent());
 		}
 		/* Display a radio button group */
 		Button slopeButton = (Button) findViewById(R.id.slope);
@@ -156,6 +167,29 @@ public class ArtutActivity extends Activity {
 		ArtutActivity.this.sendBroadcast(new Intent(
 				Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://"
 						+ Global.ARTUTIMAGE_CAPTURE_PATH)));
+	}
+
+	private PendingIntent prepareIntent() {
+		Intent i = new Intent(ACTION_RETRY_GPS_INIT);
+		PendingIntent pi = PendingIntent.getBroadcast(this, 0, i,
+				PendingIntent.FLAG_UPDATE_CURRENT);
+		return pi;
+	}
+
+	private boolean initGPS() {
+		if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+			mLocationManager.requestLocationUpdates(
+					LocationManager.GPS_PROVIDER, 30 * 1000, 10,
+					mLocationListener);
+			return true;
+		} else if (mLocationManager
+				.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+			mLocationManager.requestLocationUpdates(
+					LocationManager.NETWORK_PROVIDER, 30 * 1000, 10,
+					mLocationListener);
+			return true;
+		}
+		return false;
 	}
 
 	public int[] decodeYUV420SP(byte[] yuvData, int dataWidth, int dataHeight) {
@@ -205,6 +239,7 @@ public class ArtutActivity extends Activity {
 	protected void onPause() {
 		arContent.onPause();
 		mLocationManager.removeUpdates(mLocationListener);
+		unregisterReceiver(mReceiver);
 		super.onPause();
 	}
 
@@ -212,6 +247,7 @@ public class ArtutActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		arContent.onResume();
+		registerReceiver(mReceiver, new IntentFilter(ACTION_RETRY_GPS_INIT));
 	}
 
 	@Override
