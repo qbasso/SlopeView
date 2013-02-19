@@ -277,6 +277,7 @@ public class OverlayView extends View implements SensorEventListener {
 				SensorManager.remapCoordinateSystem(rotation,
 						SensorManager.AXIS_X, SensorManager.AXIS_Z,
 						cameraRotation);
+				
 
 				// orientation vector
 				float orientation[] = new float[3];
@@ -322,7 +323,6 @@ public class OverlayView extends View implements SensorEventListener {
 							.toDegrees(rotationX) - curBearingToMW));
 					float dy = (float) ((this.getHeight() / verticalFOV) * Math
 							.toDegrees(rotationY));
-
 					float dHeightPerDegree = this.getHeight() / verticalFOV;
 					float dRotateDegree = Global.slopeHeightOfMesureType[Global.slopeMeasureType]
 							/ dHeightPerDegree;
@@ -348,7 +348,7 @@ public class OverlayView extends View implements SensorEventListener {
 
 					// // use roll for screen rotation
 					// canvas.rotate((float)(0.0f- Math.toDegrees(rotationZ)));
-					canvas.rotate((float) (0.0f - Math.toDegrees(rotationZ)),
+					canvas.rotate((float) (90 - Math.toDegrees(rotationZ)),
 							(int) crossCenterX, (int) crossCenterY);
 
 					// wait to translate the dx so the horizon doesn't get
@@ -364,7 +364,7 @@ public class OverlayView extends View implements SensorEventListener {
 					Paint paintLine = new Paint();
 
 					// Draw Horizontal Line (0 Line)
-					paintLine.setARGB(128, 128, 128, 128);
+					paintLine.setARGB(128, 255, 0, 0);
 					paintLine.setStrokeWidth(5);
 					paintLine.setAntiAlias(true);
 
@@ -390,7 +390,8 @@ public class OverlayView extends View implements SensorEventListener {
 					}
 
 					// Draw Measure Slope Line
-					paintLine.setARGB(128, 255, 0, 0);
+					paintLine.setARGB(128, 128, 128, 128);
+					
 					paintLine.setStrokeWidth(5);
 					paintLine.setAntiAlias(true);
 
