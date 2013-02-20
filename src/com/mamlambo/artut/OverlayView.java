@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -90,7 +91,6 @@ public class OverlayView extends View implements SensorEventListener {
 		verticalFOV = params.getVerticalViewAngle();
 		horizontalFOV = params.getHorizontalViewAngle();
 		camera.release();
-
 		// paint for text
 		contentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG
 				| Paint.LINEAR_TEXT_FLAG);
@@ -100,15 +100,12 @@ public class OverlayView extends View implements SensorEventListener {
 		contentPaint.setSubpixelText(true);
 		contentPaint.setColor(Color.RED);
 		contentPaint.setShadowLayer(1, 0, 0, Color.BLACK);
-
 		// paint for target
 		targetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		targetPaint.setColor(Color.WHITE);
 		targetPaint.setStrokeWidth(3);
-
 		// init filter queue
 		filterQueueIdx = 0;
-
 		initSlopeValue();
 	}
 
@@ -233,9 +230,7 @@ public class OverlayView extends View implements SensorEventListener {
 	}
 
 	private void drawInfo(Canvas canvas) {
-
 		float curBearingToMW = 0.0f;
-
 		StringBuilder text = new StringBuilder();
 		if (Global.isDebug) {
 			text.append(accelData).append("\n");
@@ -277,7 +272,6 @@ public class OverlayView extends View implements SensorEventListener {
 				SensorManager.remapCoordinateSystem(rotation,
 						SensorManager.AXIS_X, SensorManager.AXIS_Z,
 						cameraRotation);
-				
 
 				// orientation vector
 				float orientation[] = new float[3];
@@ -329,12 +323,9 @@ public class OverlayView extends View implements SensorEventListener {
 					float dUnitDegree = (float) Math
 							.toDegrees(Math
 									.atan(1.0f / Global.slopeMeasureMeter[Global.slopeMeasureType]));
-
 					dy = (float) (dy * dRotateDegree / dUnitDegree);
-
 					// Draw Slope Line, Horizontal Line
 					canvas.save();
-
 					if (Global.isDebug) {
 						text.append(
 								String.format(
@@ -391,7 +382,7 @@ public class OverlayView extends View implements SensorEventListener {
 
 					// Draw Measure Slope Line
 					paintLine.setARGB(128, 128, 128, 128);
-					
+
 					paintLine.setStrokeWidth(5);
 					paintLine.setAntiAlias(true);
 
@@ -464,8 +455,10 @@ public class OverlayView extends View implements SensorEventListener {
 
 		Global.slopeLineMeter = slopeLineMeter;
 		// slopeLineMeter = Math.abs(slopeLineMeter);
-		strSlope = String.format("Screen Slope = %.2f : 1", slopeLineMeter);
-		setSlope = String.format("Desired Slope = %.2f : 1", slopeMeasureMeter);
+		strSlope = String.format(Locale.getDefault(),
+				"Screen Slope = %.2f : 1", slopeLineMeter);
+		setSlope = String.format(Locale.getDefault(),
+				"Desired Slope = %.2f : 1", slopeMeasureMeter);
 
 		paintLine.setStyle(Paint.Style.FILL);
 		paintLine.setStrokeWidth(2);

@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -65,49 +66,52 @@ public class ArtutActivity extends Activity {
 	protected AutoFocusCallback autoFocusCallback = new AutoFocusCallback() {
 
 		public void onAutoFocus(boolean success, Camera camera) {
-			File dir = new File(Global.ARTUTIMAGE_CAPTURE_PATH);
-			dir.mkdirs();
-			long timeMillis = System.currentTimeMillis();
-			Bitmap screen;
-			OutputStream fout = null;
-			String filename;
-			filename = String.format("/SlopeView_" + String.valueOf(timeMillis)
-					+ ".jpg");
-			File imageFile = new File(dir + filename);
-			View screenview = (View) findViewById(android.R.id.content);
-			screenview.setDrawingCacheEnabled(true);
-			screen = Bitmap.createBitmap(screenview.getDrawingCache());
-			screenview.setDrawingCacheEnabled(false);
-			byte[] data = arDisplay.lastPreviewData;
-			int[] rgbIm = decodeYUV420SP(data, arDisplay.mSize.width,
-					arDisplay.mSize.height);
-			Bitmap preview = Bitmap.createBitmap(rgbIm, arDisplay.mSize.width,
-					arDisplay.mSize.height, Config.ARGB_8888);
-			Bitmap result = Bitmap.createBitmap(preview.getWidth(),
-					preview.getHeight(), Config.ARGB_8888);
-			int previewHeight = preview.getHeight();
-			int screenHeight = screen.getHeight();
-			Canvas c = new Canvas(result);
-			c.drawBitmap(preview, new Matrix(), null);
-			if (previewHeight - screenHeight > 0) {
-				c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
-						null);
-			}
-
-			try {
-				fout = new FileOutputStream(imageFile);
-				result.compress(Bitmap.CompressFormat.JPEG, 90, fout);
-				fout.flush();
-				fout.close();
-				sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
-						Uri.parse("file://"
-								+ Environment.getExternalStorageDirectory())));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
+			saveScreenShot();
 		}
 	};
+	
+	private void saveScreenShot() {
+		File dir = new File(Global.ARTUTIMAGE_CAPTURE_PATH);
+		dir.mkdirs();
+		long timeMillis = System.currentTimeMillis();
+		Bitmap screen;
+		OutputStream fout = null;
+		String filename;
+		filename = String.format("/SlopeView_" + String.valueOf(timeMillis)
+				+ ".jpg");
+		File imageFile = new File(dir + filename);
+		View screenview = (View) findViewById(android.R.id.content);
+		screenview.setDrawingCacheEnabled(true);
+		screen = Bitmap.createBitmap(screenview.getDrawingCache());
+		screenview.setDrawingCacheEnabled(false);
+		byte[] data = arDisplay.lastPreviewData;
+		int[] rgbIm = decodeYUV420SP(data, arDisplay.mSize.width,
+				arDisplay.mSize.height);
+		Bitmap preview = Bitmap.createBitmap(rgbIm, arDisplay.mSize.width,
+				arDisplay.mSize.height, Config.ARGB_8888);
+		Bitmap result = Bitmap.createBitmap(preview.getWidth(),
+				preview.getHeight(), Config.ARGB_8888);
+		int previewHeight = preview.getHeight();
+		int screenHeight = screen.getHeight();
+		Canvas c = new Canvas(result);
+		c.drawBitmap(preview, new Matrix(), null);
+		if (previewHeight - screenHeight > 0) {
+			c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
+					null);
+		}
+		try {
+			fout = new FileOutputStream(imageFile);
+			result.compress(Bitmap.CompressFormat.JPEG, 100, fout);
+			fout.flush();
+			fout.close();
+			sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
+					Uri.parse("file://"
+							+ Environment.getExternalStorageDirectory())));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	private LocationListener mLocationListener = new LocationListener() {
 
 		public void onStatusChanged(String provider, int status, Bundle extras) {
@@ -310,4 +314,12 @@ public class ArtutActivity extends Activity {
 		}
 		return null;
 	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		// TODO Auto-generated method stub
+		super.onConfigurationChanged(newConfig);
+	}
+	
+	
 }

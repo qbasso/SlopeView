@@ -6,12 +6,14 @@ import java.util.List;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
@@ -35,12 +37,10 @@ public class ArDisplayView extends SurfaceView implements
 
 		mActivity = activity;
 		mHolder = getHolder();
-
 		// This value is supposedly deprecated and set "automatically" when
 		// needed.
 		// Without this, the application crashes.
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
 		// callbacks implemented by ArDisplayView
 		mHolder.addCallback(this);
 	}
@@ -50,7 +50,9 @@ public class ArDisplayView extends SurfaceView implements
 		WindowManager manager = (WindowManager) mActivity
 				.getSystemService(Context.WINDOW_SERVICE);
 		Display display = manager.getDefaultDisplay();
-		screenResolution = new Point(display.getWidth(), display.getHeight());
+		DisplayMetrics dm = new DisplayMetrics();
+		display.getMetrics(dm);
+		screenResolution = new Point(dm.widthPixels, dm.heightPixels);
 		cameraResolution = findBestPreviewOrPictureSize(
 				params.getSupportedPreviewSizes(), screenResolution, false);
 	}
@@ -106,7 +108,7 @@ public class ArDisplayView extends SurfaceView implements
 	private void setBestResolutionParams(Camera camera) {
 		Camera.Parameters params = camera.getParameters();
 		params.set("jpeg-quality", "100");
-		params.setPictureFormat(PixelFormat.JPEG);
+		params.setPictureFormat(ImageFormat.JPEG);
 		params.setPreviewSize(cameraResolution.x, cameraResolution.y);
 		camera.setParameters(params);
 		mSize = camera.getParameters().getPreviewSize();
@@ -122,26 +124,6 @@ public class ArDisplayView extends SurfaceView implements
 		// Set Display orientation
 		CameraInfo info = new CameraInfo();
 		Camera.getCameraInfo(CameraInfo.CAMERA_FACING_BACK, info);
-
-		int rotation = mActivity.getWindowManager().getDefaultDisplay()
-				.getRotation();
-		int degrees = 0;
-		switch (rotation) {
-		case Surface.ROTATION_0:
-			degrees = 0;
-			break;
-		case Surface.ROTATION_90:
-			degrees = 90;
-			break;
-		case Surface.ROTATION_180:
-			degrees = 180;
-			break;
-		case Surface.ROTATION_270:
-			degrees = 270;
-			break;
-		}
-
-		// mCamera.setDisplayOrientation(degrees);
 
 		try {
 			mCamera.setPreviewDisplay(this.mHolder);
@@ -159,7 +141,6 @@ public class ArDisplayView extends SurfaceView implements
 	public void surfaceChanged(SurfaceHolder holder, int format, int width,
 			int height) {
 		Log.d(DEBUG_TAG, "surfaceChanged");
-		Camera.Parameters params = mCamera.getParameters();
 		initResolutionsFromParams(mCamera);
 		setBestResolutionParams(mCamera);
 		mCamera.startPreview();
@@ -167,11 +148,11 @@ public class ArDisplayView extends SurfaceView implements
 
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		Log.d(DEBUG_TAG, "surfaceDestroyed");
-
 		// Shut down camera preview
 		mCamera.setPreviewCallback(null);
 		mCamera.stopPreview();
 		mCamera.release();
 	}
+
 
 }
