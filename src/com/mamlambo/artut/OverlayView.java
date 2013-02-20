@@ -323,7 +323,7 @@ public class OverlayView extends View implements SensorEventListener {
 					float dUnitDegree = (float) Math
 							.toDegrees(Math
 									.atan(1.0f / Global.slopeMeasureMeter[Global.slopeMeasureType]));
-					dy = (float) (dy * dRotateDegree / dUnitDegree);
+//					dy = (float) (dy * dRotateDegree / dUnitDegree);
 					// Draw Slope Line, Horizontal Line
 					canvas.save();
 					if (Global.isDebug) {
@@ -344,6 +344,8 @@ public class OverlayView extends View implements SensorEventListener {
 
 					// wait to translate the dx so the horizon doesn't get
 					// pushed off
+					Log.i("Slope", "Translate: " + Float.toString(dy));
+					Log.i("Slope", "Rotation: " + Float.toString(rotationZ));
 					canvas.translate(0.0f, 0.0f - dy);
 
 					// // now translate the dx
@@ -355,14 +357,14 @@ public class OverlayView extends View implements SensorEventListener {
 					Paint paintLine = new Paint();
 
 					// Draw Horizontal Line (0 Line)
-					paintLine.setARGB(128, 255, 0, 0);
+					paintLine.setARGB(128, 128, 128, 128);
 					paintLine.setStrokeWidth(5);
 					paintLine.setAntiAlias(true);
 
 					startPosition.x = -this.getWidth();
 					targetPosition.x = this.getWidth() * 2;
-					startPosition.y = (int) (this.getHeight() / 2)
-							+ (int) slopeBaseOfferHeight;
+					startPosition.y = (int) (this.getHeight() / 2);
+							//+ (int) slopeBaseOfferHeight;
 					targetPosition.y = startPosition.y;
 					canvas.drawLine(targetPosition.x, targetPosition.y,
 							startPosition.x, startPosition.y, paintLine);
@@ -381,15 +383,15 @@ public class OverlayView extends View implements SensorEventListener {
 					}
 
 					// Draw Measure Slope Line
-					paintLine.setARGB(128, 128, 128, 128);
-
+					
+					paintLine.setARGB(128, 255, 0, 0);
 					paintLine.setStrokeWidth(5);
 					paintLine.setAntiAlias(true);
 
 					startPosition.x = -this.getWidth();
 					targetPosition.x = this.getWidth() * 2;
 
-					startPosition.y = (int) (startPosition.y - Global.slopeHeightOfMesureType[Global.slopeMeasureType]);
+					startPosition.y = (int) (startPosition.y + Global.slopeHeightOfMesureType[Global.slopeMeasureType]);
 					targetPosition.y = startPosition.y;
 
 					canvas.drawLine(targetPosition.x, targetPosition.y,

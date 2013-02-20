@@ -98,6 +98,9 @@ public class ArtutActivity extends Activity {
 		if (previewHeight - screenHeight > 0) {
 			c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
 					null);
+		} else {
+			c.drawBitmap(screen, new Matrix(),
+					null);
 		}
 		try {
 			fout = new FileOutputStream(imageFile);
