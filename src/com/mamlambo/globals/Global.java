@@ -27,6 +27,7 @@ public static int deviceType = 0; // 0 degree correction : Slopeview 1.1 - Model
 	
 	public static final String ARTUTIMAGE_CAPTURE_PATH = Environment.getExternalStorageDirectory() + "/SlopeView";
 	
+	public static final float GALAXY_TAB_Z_AXIS_CORRECTION = 1.926f;
 	public static boolean isShowVersionText = true;
 	
 	public static float slopeLineMeter = 0.0f;

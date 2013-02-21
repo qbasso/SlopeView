@@ -278,7 +278,7 @@ public class OverlayView extends View implements SensorEventListener {
 				SensorManager.getOrientation(cameraRotation, orientation);
 				rotationX = orientation[0];
 				rotationY = orientation[1];
-				rotationZ = orientation[2];
+				rotationZ = orientation[2] + Global.GALAXY_TAB_Z_AXIS_CORRECTION;
 
 				// apply filter
 				filterQueueX[filterQueueIdx % filterQueueLen] = orientation[0];
@@ -323,7 +323,7 @@ public class OverlayView extends View implements SensorEventListener {
 					float dUnitDegree = (float) Math
 							.toDegrees(Math
 									.atan(1.0f / Global.slopeMeasureMeter[Global.slopeMeasureType]));
-//					dy = (float) (dy * dRotateDegree / dUnitDegree);
+					dy = (float) (dy * dRotateDegree / dUnitDegree);
 					// Draw Slope Line, Horizontal Line
 					canvas.save();
 					if (Global.isDebug) {
@@ -346,7 +346,7 @@ public class OverlayView extends View implements SensorEventListener {
 					// pushed off
 					Log.i("Slope", "Translate: " + Float.toString(dy));
 					Log.i("Slope", "Rotation: " + Float.toString(rotationZ));
-					canvas.translate(0.0f, 0.0f - dy);
+					canvas.translate(0.0f, 0.0f + dy);
 
 					// // now translate the dx
 					// canvas.translate(0.0f-dx, 0.0f);

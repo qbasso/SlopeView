@@ -63,12 +63,6 @@ public class ArtutActivity extends Activity {
 		}
 	};
 
-	protected AutoFocusCallback autoFocusCallback = new AutoFocusCallback() {
-
-		public void onAutoFocus(boolean success, Camera camera) {
-			saveScreenShot();
-		}
-	};
 	
 	private void saveScreenShot() {
 		File dir = new File(Global.ARTUTIMAGE_CAPTURE_PATH);
@@ -163,7 +157,7 @@ public class ArtutActivity extends Activity {
 		Button cameraButton = (Button) findViewById(R.id.camera);
 		cameraButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				arDisplay.mCamera.autoFocus(autoFocusCallback);
+				saveScreenShot();
 			}
 		});
 
