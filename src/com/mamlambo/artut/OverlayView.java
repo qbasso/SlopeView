@@ -15,7 +15,6 @@ import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Paint.Style;
 import android.graphics.Point;
-import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -32,8 +31,6 @@ import com.mamlambo.globals.Global;
 public class OverlayView extends View implements SensorEventListener {
 
 	public static final String DEBUG_TAG = "OverlayView Log";
-
-	private final Context context;
 
 	// Mount Washington, NH: 44.27179, -71.3039, 6288 ft (highest peak
 	private final static Location mountWashington = new Location("manual");
@@ -74,23 +71,19 @@ public class OverlayView extends View implements SensorEventListener {
 	private static float filterQueueY[] = new float[filterQueueLen];
 	private static float filterQueueZ[] = new float[filterQueueLen];
 
+	private static Paint paintLine;
+
 	public OverlayView(Context context) {
 		super(context);
-		this.context = context;
-
 		sensors = (SensorManager) context
 				.getSystemService(Context.SENSOR_SERVICE);
 		accelSensor = sensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		compassSensor = sensors.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 		gyroSensor = sensors.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
 		startSensors();
-		// get some camera parameters
-		Camera camera = Camera.open();
-		Camera.Parameters params = camera.getParameters();
-		verticalFOV = params.getVerticalViewAngle();
-		horizontalFOV = params.getHorizontalViewAngle();
-		camera.release();
+		CameraController.init(context);
+		verticalFOV = CameraController.getVerticalFOV();
+		horizontalFOV = CameraController.getHorizontalFOV();
 		// paint for text
 		contentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG
 				| Paint.LINEAR_TEXT_FLAG);
@@ -100,6 +93,7 @@ public class OverlayView extends View implements SensorEventListener {
 		contentPaint.setSubpixelText(true);
 		contentPaint.setColor(Color.RED);
 		contentPaint.setShadowLayer(1, 0, 0, Color.BLACK);
+		paintLine = new Paint();
 		// paint for target
 		targetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		targetPaint.setColor(Color.WHITE);
@@ -167,8 +161,6 @@ public class OverlayView extends View implements SensorEventListener {
 	}
 
 	public void onSensorChanged(SensorEvent event) {
-		// Log.d(DEBUG_TAG, "onSensorChanged");
-
 		StringBuilder msg = new StringBuilder(event.sensor.getName())
 				.append(" ");
 		for (float value : event.values) {
@@ -208,11 +200,8 @@ public class OverlayView extends View implements SensorEventListener {
 		options.inSampleSize = 2;
 		options.inPurgeable = true;
 		Bitmap bitmap = BitmapFactory.decodeFile(filename, options);
-
 		Canvas canvas = new Canvas(bitmap);
-
 		drawInfo(canvas);
-
 		FileOutputStream out;
 		try {
 			out = new FileOutputStream(new File(infofilename));
@@ -225,12 +214,10 @@ public class OverlayView extends View implements SensorEventListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 		Log.d(DEBUG_TAG, "Done bitmap compress.");
 	}
 
 	private void drawInfo(Canvas canvas) {
-		float curBearingToMW = 0.0f;
 		StringBuilder text = new StringBuilder();
 		if (Global.isDebug) {
 			text.append(accelData).append("\n");
@@ -238,23 +225,7 @@ public class OverlayView extends View implements SensorEventListener {
 			text.append(gyroData).append("\n");
 		}
 
-		if (slopeCurMyLocation != null) {
-			text.append("Current Position").append("\n");
-			text.append(
-					String.format("Latitude  : %.5f",
-							slopeCurMyLocation.getLatitude())).append("\n");
-			text.append(
-					String.format("Longitude : %.5f",
-							slopeCurMyLocation.getLongitude())).append("\n");
-			text.append(
-					String.format("Altitude  : %.2f",
-							slopeCurMyLocation.getAltitude())).append("\n");
-		} else {
-			text.append("Current Position").append("\n");
-			text.append(String.format("Latitude  : unknown")).append("\n");
-			text.append(String.format("Longitude : unknown")).append("\n");
-			text.append(String.format("Altitude  : unknown")).append("\n");
-		}
+		appendLocationData(text);
 
 		// compute rotation matrix
 		float rotationX = 0.0f;
@@ -272,13 +243,13 @@ public class OverlayView extends View implements SensorEventListener {
 				SensorManager.remapCoordinateSystem(rotation,
 						SensorManager.AXIS_X, SensorManager.AXIS_Z,
 						cameraRotation);
-
 				// orientation vector
 				float orientation[] = new float[3];
 				SensorManager.getOrientation(cameraRotation, orientation);
 				rotationX = orientation[0];
 				rotationY = orientation[1];
-				rotationZ = (float) (orientation[2] + Math.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
+				rotationZ = (float) (orientation[2] + Math
+						.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
 
 				// apply filter
 				filterQueueX[filterQueueIdx % filterQueueLen] = orientation[0];
@@ -302,141 +273,108 @@ public class OverlayView extends View implements SensorEventListener {
 					rotationZ = rotationZ / filterQueueLen;
 				}
 
-				// if(Global.isDebug)
-				{
-//					text.append(
-//							String.format("Orientation %.3f, %.3f, %.3f",
-//									Math.toDegrees(rotationX),
-//									Math.toDegrees(rotationY),
-//									Math.toDegrees(rotationZ))).append("\n");
+				// Translate, but normalize for the FOV of the camera --
+				// basically, pixels per degree, times degrees == pixels
+				float dx = (float) ((this.getWidth() / horizontalFOV) * (Math
+						.toDegrees(rotationX)));
+				float dy = (float) ((this.getHeight() / verticalFOV) * Math
+						.toDegrees(rotationY));
+				float dHeightPerDegree = this.getHeight() / verticalFOV;
+				float dRotateDegree = Global.slopeHeightOfMesureType[Global.slopeMeasureType]
+						/ dHeightPerDegree;
+				float dUnitDegree = (float) Math
+						.toDegrees(Math
+								.atan(1.0f / Global.slopeMeasureMeter[Global.slopeMeasureType]));
+				dy = (float) (dy * dRotateDegree / dUnitDegree);
+				canvas.save();
+				if (Global.isDebug) {
+					text.append(
+							String.format(
+									"[dx, dy]:[%.2f, %.2f], [hFOV, vFOV]:[%.2f, %.2f]",
+									dx, dy, horizontalFOV, verticalFOV))
+							.append("\n");
 				}
 
-				{
-					// Translate, but normalize for the FOV of the camera --
-					// basically, pixels per degree, times degrees == pixels
-					float dx = (float) ((this.getWidth() / horizontalFOV) * (Math
-							.toDegrees(rotationX) - curBearingToMW));
-					float dy = (float) ((this.getHeight() / verticalFOV) * Math
-							.toDegrees(rotationY));
-					float dHeightPerDegree = this.getHeight() / verticalFOV;
-					float dRotateDegree = Global.slopeHeightOfMesureType[Global.slopeMeasureType]
-							/ dHeightPerDegree;
-					float dUnitDegree = (float) Math
-							.toDegrees(Math
-									.atan(1.0f / Global.slopeMeasureMeter[Global.slopeMeasureType]));
-					dy = (float) (dy * dRotateDegree / dUnitDegree);
-					// Draw Slope Line, Horizontal Line
-					canvas.save();
-					if (Global.isDebug) {
-						text.append(
-								String.format(
-										"[dx, dy]:[%.2f, %.2f], [hFOV, vFOV]:[%.2f, %.2f]",
-										dx, dy, horizontalFOV, verticalFOV))
-								.append("\n");
-					}
+				float crossCenterX = this.getWidth() / 2.0f;
+				float crossCenterY = this.getHeight() / 2.0f;
 
-					float crossCenterX = this.getWidth() / 2.0f;
-					float crossCenterY = this.getHeight() / 2.0f;
+				canvas.rotate((float) (90 - Math.toDegrees(rotationZ)),
+						(int) crossCenterX, (int) crossCenterY);
 
-					// // use roll for screen rotation
-					// canvas.rotate((float)(0.0f- Math.toDegrees(rotationZ)));
-					canvas.rotate((float) (90 - Math.toDegrees(rotationZ)),
-							(int) crossCenterX, (int) crossCenterY);
-
-					// wait to translate the dx so the horizon doesn't get
-					// pushed off
-					Log.i("Slope", "Translate: " + Float.toString(dy));
-					Log.i("Slope", "Rotation: " + Float.toString(rotationZ));
-					canvas.translate(0.0f, 0.0f + dy);
-
-					// // now translate the dx
-					// canvas.translate(0.0f-dx, 0.0f);
-
-					// Draw Slope Lines
-					Point targetPosition = new Point();
-					Point startPosition = new Point();
-					Paint paintLine = new Paint();
-
-					// Draw Horizontal Line (0 Line)
-					paintLine.setARGB(128, 128, 128, 128);
-					paintLine.setStrokeWidth(5);
-					paintLine.setAntiAlias(true);
-
-					startPosition.x = -this.getWidth();
-					targetPosition.x = this.getWidth() * 2;
-					startPosition.y = (int) (this.getHeight() / 2);
-							//+ (int) slopeBaseOfferHeight;
-					targetPosition.y = startPosition.y;
-					canvas.drawLine(targetPosition.x, targetPosition.y,
-							startPosition.x, startPosition.y, paintLine);
-
-					if (Global.isDebug) {
-						text.append(
-								String.format("[%4d, %4d] - [%4d, %d]",
-										startPosition.x, startPosition.y,
-										targetPosition.x, targetPosition.y))
-								.append("\n");
-						text.append(
-								String.format("[%4d, %4d] - [%4d, %d]",
-										canvas.getWidth(), canvas.getHeight(),
-										this.getWidth(), this.getHeight()))
-								.append("\n");
-					}
-
-					// Draw Measure Slope Line
-					
-					paintLine.setARGB(128, 255, 0, 0);
-					paintLine.setStrokeWidth(5);
-					paintLine.setAntiAlias(true);
-
-					startPosition.x = -this.getWidth();
-					targetPosition.x = this.getWidth() * 2;
-
-					startPosition.y = (int) (startPosition.y + Global.slopeHeightOfMesureType[Global.slopeMeasureType]);
-					targetPosition.y = startPosition.y;
-
-					canvas.drawLine(targetPosition.x, targetPosition.y,
-							startPosition.x, startPosition.y, paintLine);
-
-					canvas.restore();
-				}
-				{
-					// draw cross hair
-					canvas.save();
-					// draw cross hair
-					float crossWidth = this.getWidth() / 4.0f;
-					float crossHeight = this.getHeight() / 8.0f;
-					float crossCenterX = this.getWidth() / 2.0f;
-					float crossCenterY = this.getHeight() / 2.0f
-							+ slopeBaseOfferHeight;
-					float crossStartX = (this.getWidth() - crossWidth) / 2.0f;
-					float crossStartY = this.getHeight() / 2.0f
-							+ slopeBaseOfferHeight;
-
-					canvas.drawLine(crossStartX, crossStartY, crossStartX
-							+ crossWidth, crossStartY, targetPaint);
-					canvas.drawLine(crossCenterX, crossCenterY - crossHeight,
-							crossCenterX, crossCenterY + crossHeight,
-							targetPaint);
-					canvas.drawLine(crossCenterX - crossWidth / 4.0f,
-							crossCenterY - crossHeight / 2.0f, crossCenterX
-									- crossWidth / 4.0f, crossCenterY
-									+ crossHeight / 2.0f, targetPaint);
-					canvas.drawLine(crossCenterX + crossWidth / 4.0f,
-							crossCenterY - crossHeight / 2.0f, crossCenterX
-									+ crossWidth / 4.0f, crossCenterY
-									+ crossHeight / 2.0f, targetPaint);
-
-					canvas.restore();
-				}
+				// wait to translate the dx so the horizon doesn't get
+				// pushed off
+				canvas.translate(0.0f, 0.0f + dy);
+				drawHorizonAndSlopeLine(canvas);
+				canvas.restore();
+				canvas.save();
+				drawCrosshair(canvas);
+				canvas.restore();
 			}
 		}
 
 		canvas.save();
+		Paint paintLine = drawSlopeValue(canvas, rotationY);
+		canvas.restore();
+		drawAppVersion(canvas, paintLine);
 
-		// Output Slope Value
+		canvas.save();
+		canvas.translate(15.0f, 15.0f);
+		StaticLayout textBox = new StaticLayout(text.toString(), contentPaint,
+				480, Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
+		textBox.draw(canvas);
+		canvas.restore();
+	}
+
+	private void appendLocationData(StringBuilder text) {
+		if (slopeCurMyLocation != null) {
+			text.append("Current Position").append("\n");
+			text.append(
+					String.format("Latitude  : %.5f",
+							slopeCurMyLocation.getLatitude())).append("\n");
+			text.append(
+					String.format("Longitude : %.5f",
+							slopeCurMyLocation.getLongitude())).append("\n");
+			text.append(
+					String.format("Altitude  : %.2f",
+							slopeCurMyLocation.getAltitude())).append("\n");
+		} else {
+			text.append("Current Position").append("\n");
+			text.append(String.format("Latitude  : unknown")).append("\n");
+			text.append(String.format("Longitude : unknown")).append("\n");
+			text.append(String.format("Altitude  : unknown")).append("\n");
+		}
+	}
+
+	private void drawHorizonAndSlopeLine(Canvas canvas) {
+		Point targetPosition = new Point();
+		Point startPosition = new Point();
+		paintLine.setARGB(128, 128, 128, 128);
+		paintLine.setStrokeWidth(5);
+		paintLine.setAntiAlias(true);
+
+		startPosition.x = -this.getWidth();
+		targetPosition.x = this.getWidth() * 2;
+		startPosition.y = (int) (this.getHeight() / 2);
+		targetPosition.y = startPosition.y;
+		canvas.drawLine(targetPosition.x, targetPosition.y, startPosition.x,
+				startPosition.y, paintLine);
+
+		paintLine.setARGB(128, 255, 0, 0);
+		paintLine.setStrokeWidth(5);
+		paintLine.setAntiAlias(true);
+
+		startPosition.x = -this.getWidth();
+		targetPosition.x = this.getWidth() * 2;
+
+		startPosition.y = (int) (startPosition.y + Global.slopeHeightOfMesureType[Global.slopeMeasureType]);
+		targetPosition.y = startPosition.y;
+
+		canvas.drawLine(targetPosition.x, targetPosition.y, startPosition.x,
+				startPosition.y, paintLine);
+	}
+
+	private Paint drawSlopeValue(Canvas canvas, float rotationY) {
 		Paint paintLine = new Paint(Paint.ANTI_ALIAS_FLAG);
-		Paint paintLine1 = new Paint(Paint.ANTI_ALIAS_FLAG);
 		String strSlope = "";
 		String setSlope = "";
 		float slopeMeasureMeter = Global.slopeMeasureMeter[Global.slopeMeasureType];
@@ -470,25 +408,22 @@ public class OverlayView extends View implements SensorEventListener {
 		paintLine.setTextSize(40);
 		paintLine.setTextAlign(Paint.Align.CENTER);
 
-		paintLine1.setStyle(Paint.Style.FILL);
-		paintLine1.setStrokeWidth(2);
-		paintLine1.setColor(Color.RED);
-		paintLine1.setShadowLayer(3, 0, 0, Color.BLACK);
-		paintLine1.setTextSize(20);
-		paintLine1.setTextAlign(Paint.Align.CENTER);
-
 		int textBoundWidth = (int) Math.ceil(paintLine.measureText(strSlope));
 		int textBoundHeight = 80;
 		int textStartX = (canvas.getWidth() / 2);
 		int textStartY = textBoundHeight - 00;
 
 		canvas.drawText(strSlope, textStartX, textStartY, paintLine);
+		paintLine.setTextSize(20);
+		canvas.drawText(setSlope, textStartX, textBoundHeight - 40, paintLine);
+		return paintLine;
+	}
 
-		canvas.drawText(setSlope, textStartX, textBoundHeight - 40, paintLine1);
-
-		canvas.restore();
-
-		// Output APP VERSION.
+	private void drawAppVersion(Canvas canvas, Paint paintLine) {
+		int textBoundWidth;
+		int textBoundHeight;
+		int textStartX;
+		int textStartY;
 		if (Global.isShowVersionText == true) {
 			canvas.save();
 
@@ -511,17 +446,27 @@ public class OverlayView extends View implements SensorEventListener {
 
 			canvas.restore();
 		}
+	}
 
-		// if(Global.isDebug) {
-		// text.append(strSlope);
-		// }
+	private void drawCrosshair(Canvas canvas) {
+		// draw cross hair
+		float crossWidth = this.getWidth() / 4.0f;
+		float crossHeight = this.getHeight() / 8.0f;
+		float crossCenterX = this.getWidth() / 2.0f;
+		float crossCenterY = this.getHeight() / 2.0f + slopeBaseOfferHeight;
+		float crossStartX = (this.getWidth() - crossWidth) / 2.0f;
+		float crossStartY = this.getHeight() / 2.0f + slopeBaseOfferHeight;
 
-		canvas.save();
-		canvas.translate(15.0f, 15.0f);
-		StaticLayout textBox = new StaticLayout(text.toString(), contentPaint,
-				480, Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
-		textBox.draw(canvas);
-		canvas.restore();
+		canvas.drawLine(crossStartX, crossStartY, crossStartX + crossWidth,
+				crossStartY, targetPaint);
+		canvas.drawLine(crossCenterX, crossCenterY - crossHeight, crossCenterX,
+				crossCenterY + crossHeight, targetPaint);
+		canvas.drawLine(crossCenterX - crossWidth / 4.0f, crossCenterY
+				- crossHeight / 2.0f, crossCenterX - crossWidth / 4.0f,
+				crossCenterY + crossHeight / 2.0f, targetPaint);
+		canvas.drawLine(crossCenterX + crossWidth / 4.0f, crossCenterY
+				- crossHeight / 2.0f, crossCenterX + crossWidth / 4.0f,
+				crossCenterY + crossHeight / 2.0f, targetPaint);
 	}
 
 	public void setLocation(Location mCurrentLocation) {

@@ -20,8 +20,6 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
-import android.hardware.Camera;
-import android.hardware.Camera.AutoFocusCallback;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -50,9 +48,7 @@ public class ArtutActivity extends Activity {
 	private ArDisplayView arDisplay;
 	private LocationManager mLocationManager;
 	private AlarmManager mAlertManager;
-	private Location mCurrentLocation = null;
 
-	public static ArtutActivity Instance;
 	private BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
 		@Override
@@ -63,52 +59,51 @@ public class ArtutActivity extends Activity {
 		}
 	};
 
-	
 	private void saveScreenShot() {
 		File dir = new File(Global.ARTUTIMAGE_CAPTURE_PATH);
 		dir.mkdirs();
-		long timeMillis = System.currentTimeMillis();
 		Bitmap screen;
 		OutputStream fout = null;
 		String filename;
-		filename = String.format("/SlopeView_" + String.valueOf(timeMillis)
+		filename = String.format("/SlopeView_" + String.valueOf(System.currentTimeMillis())
 				+ ".jpg");
 		File imageFile = new File(dir + filename);
 		View screenview = (View) findViewById(android.R.id.content);
 		screenview.setDrawingCacheEnabled(true);
 		screen = Bitmap.createBitmap(screenview.getDrawingCache());
 		screenview.setDrawingCacheEnabled(false);
-		byte[] data = arDisplay.lastPreviewData;
-		int[] rgbIm = decodeYUV420SP(data, arDisplay.mSize.width,
-				arDisplay.mSize.height);
-		Bitmap preview = Bitmap.createBitmap(rgbIm, arDisplay.mSize.width,
-				arDisplay.mSize.height, Config.ARGB_8888);
-		Bitmap result = Bitmap.createBitmap(preview.getWidth(),
-				preview.getHeight(), Config.ARGB_8888);
-		int previewHeight = preview.getHeight();
-		int screenHeight = screen.getHeight();
-		Canvas c = new Canvas(result);
-		c.drawBitmap(preview, new Matrix(), null);
-		if (previewHeight - screenHeight > 0) {
-			c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
-					null);
-		} else {
-			c.drawBitmap(screen, new Matrix(),
-					null);
-		}
-		try {
-			fout = new FileOutputStream(imageFile);
-			result.compress(Bitmap.CompressFormat.JPEG, 100, fout);
-			fout.flush();
-			fout.close();
-			sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
-					Uri.parse("file://"
-							+ Environment.getExternalStorageDirectory())));
-		} catch (Exception e) {
-			e.printStackTrace();
+		byte[] data = CameraController.getLastPreviewData();
+		if (data != null) {
+			int[] rgbIm = ImageUtils.decodeYUV420SP(data, arDisplay.mSize.x,
+					arDisplay.mSize.y);
+			Bitmap preview = Bitmap.createBitmap(rgbIm, arDisplay.mSize.x,
+					arDisplay.mSize.y, Config.ARGB_8888);
+			Bitmap result = Bitmap.createBitmap(preview.getWidth(),
+					preview.getHeight(), Config.ARGB_8888);
+			int previewHeight = preview.getHeight();
+			int screenHeight = screen.getHeight();
+			Canvas c = new Canvas(result);
+			c.drawBitmap(preview, new Matrix(), null);
+			if (previewHeight - screenHeight > 0) {
+				c.drawBitmap(screen, 0, (previewHeight - screenHeight) / 2,
+						null);
+			} else {
+				c.drawBitmap(screen, new Matrix(), null);
+			}
+			try {
+				fout = new FileOutputStream(imageFile);
+				result.compress(Bitmap.CompressFormat.JPEG, 100, fout);
+				fout.flush();
+				fout.close();
+				sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
+						Uri.parse("file://"
+								+ Environment.getExternalStorageDirectory())));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
-	
+
 	private LocationListener mLocationListener = new LocationListener() {
 
 		public void onStatusChanged(String provider, int status, Bundle extras) {
@@ -122,8 +117,7 @@ public class ArtutActivity extends Activity {
 
 		public void onLocationChanged(Location location) {
 			if (location != null) {
-				mCurrentLocation = location;
-				arContent.setLocation(mCurrentLocation);
+				arContent.setLocation(location);
 			}
 		}
 	};
@@ -133,9 +127,8 @@ public class ArtutActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		Instance = this;
 		FrameLayout arViewPane = (FrameLayout) findViewById(R.id.ar_view_pane);
-		arDisplay = new ArDisplayView(getApplicationContext(), this);
+		arDisplay = new ArDisplayView(getApplicationContext());
 		arViewPane.addView(arDisplay);
 		arContent = new OverlayView(getApplicationContext());
 		arViewPane.addView(arContent);
@@ -199,48 +192,7 @@ public class ArtutActivity extends Activity {
 		return false;
 	}
 
-	public int[] decodeYUV420SP(byte[] yuvData, int dataWidth, int dataHeight) {
-		final int frameSize = dataWidth * dataHeight;
-		int[] rgb = new int[frameSize];
-		for (int j = 0, yp = 0; j < dataHeight; j++) {
-			int uvp = frameSize + (j >> 1) * dataWidth, u = 0, v = 0;
-			for (int i = 0; i < dataWidth; i++, yp++) {
-				int y = (0xff & ((int) yuvData[yp])) - 16;
-				if (y < 0) {
-					y = 0;
-				}
-				if ((i & 1) == 0) {
-					v = (0xff & yuvData[uvp++]) - 128;
-					u = (0xff & yuvData[uvp++]) - 128;
-				}
-
-				int y1192 = 1192 * y;
-				int r = (y1192 + 1634 * v);
-				int g = (y1192 - 833 * v - 400 * u);
-				int b = (y1192 + 2066 * u);
-
-				if (r < 0) {
-					r = 0;
-				} else if (r > 262143) {
-					r = 262143;
-				}
-				if (g < 0) {
-					g = 0;
-				} else if (g > 262143) {
-					g = 262143;
-				}
-				if (b < 0) {
-					b = 0;
-				} else if (b > 262143) {
-					b = 262143;
-				}
-
-				rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000)
-						| ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
-			}
-		}
-		return rgb;
-	}
+	
 
 	@Override
 	protected void onPause() {
@@ -317,6 +269,5 @@ public class ArtutActivity extends Activity {
 		// TODO Auto-generated method stub
 		super.onConfigurationChanged(newConfig);
 	}
-	
-	
+
 }

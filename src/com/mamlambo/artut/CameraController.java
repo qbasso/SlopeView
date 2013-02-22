@@ -30,7 +30,7 @@ public class CameraController {
 	/**
 	 * android camera object
 	 */
-	private Camera camera;
+	private static Camera camera;
 	/**
 	 * phone screen resolution
 	 */
@@ -43,7 +43,7 @@ public class CameraController {
 	private static byte[] mLastPreviewData;
 
 	private static float mVerticalFOV;
-	private static float mHorizontalFOV;
+	private static float mHorizontalFOV;	
 
 	private PreviewCallback cameraPreviewCallback = new PreviewCallback() {
 
@@ -67,6 +67,9 @@ public class CameraController {
 	public static void init(Context ctx) {
 		if (cameraController == null) {
 			cameraController = new CameraController(ctx);
+			camera = Camera.open();
+			mHorizontalFOV = camera.getParameters().getHorizontalViewAngle();
+			mVerticalFOV = camera.getParameters().getVerticalViewAngle();
 		}
 	}
 
@@ -103,7 +106,6 @@ public class CameraController {
 		}
 		camera.setPreviewDisplay(holder);
 		changeParams();
-		camera.setPreviewCallback(cameraPreviewCallback);
 	}
 
 	public void changeParams() {
@@ -127,6 +129,7 @@ public class CameraController {
 	public void startPreview() {
 		if (camera != null) {
 			camera.startPreview();
+			camera.setPreviewCallback(cameraPreviewCallback);
 		}
 	}
 
@@ -159,9 +162,6 @@ public class CameraController {
 	}
 
 	/**
-	 * sets params for camera, default orientation for android is landscape, we
-	 * use camera in portrait mode so when we set preview and picture size we
-	 * swap x and y values.
 	 * 
 	 * @param camera
 	 *            android camera object
