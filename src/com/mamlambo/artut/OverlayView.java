@@ -278,12 +278,13 @@ public class OverlayView extends View implements SensorEventListener {
 				SensorManager.getOrientation(cameraRotation, orientation);
 				rotationX = orientation[0];
 				rotationY = orientation[1];
-				rotationZ = orientation[2] + Global.GALAXY_TAB_Z_AXIS_CORRECTION;
+				rotationZ = (float) (orientation[2] + Math.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
 
 				// apply filter
 				filterQueueX[filterQueueIdx % filterQueueLen] = orientation[0];
 				filterQueueY[filterQueueIdx % filterQueueLen] = orientation[1];
-				filterQueueZ[filterQueueIdx % filterQueueLen] = orientation[2];
+				filterQueueZ[filterQueueIdx % filterQueueLen] = (float) (orientation[2] + Math
+						.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
 				filterQueueIdx++;
 				if (filterQueueIdx > filterQueueLen) {
 					rotationX = 0;
@@ -303,11 +304,11 @@ public class OverlayView extends View implements SensorEventListener {
 
 				// if(Global.isDebug)
 				{
-					text.append(
-							String.format("Orientation %.3f, %.3f, %.3f",
-									Math.toDegrees(rotationX),
-									Math.toDegrees(rotationY),
-									Math.toDegrees(rotationZ))).append("\n");
+//					text.append(
+//							String.format("Orientation %.3f, %.3f, %.3f",
+//									Math.toDegrees(rotationX),
+//									Math.toDegrees(rotationY),
+//									Math.toDegrees(rotationZ))).append("\n");
 				}
 
 				{
