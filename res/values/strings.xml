@@ -12,6 +12,8 @@
     <string name="alert_dialog_agreetitle">Important:Terms of Service and Disclaimer</string>
     <string name="alert_dialog_agreemsg">By continuing, you agree that this device is not survey grade equipment and is intended for initial surface evaluation, maintenance and documentation of airport surfaces.
         Consult a licensed surveyor for exact measurements.</string>
+    <string name="calibrate_text">To begin calibration, stand the device in landscape orientation, with it\'s long side resting against a flat, level surface. Next, press begin.</string>
+    <string name="calibrating_text">Calibrating... Do not move device</string>
     
     
 </resources>

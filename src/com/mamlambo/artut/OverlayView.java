@@ -152,7 +152,6 @@ public class OverlayView extends View implements SensorEventListener {
 	protected void onDraw(Canvas canvas) {
 		// Log.d(DEBUG_TAG, "onDraw");
 		super.onDraw(canvas);
-
 		drawInfo(canvas);
 	}
 
@@ -224,7 +223,6 @@ public class OverlayView extends View implements SensorEventListener {
 			text.append(compassData).append("\n");
 			text.append(gyroData).append("\n");
 		}
-
 		appendLocationData(text);
 
 		// compute rotation matrix
@@ -247,15 +245,17 @@ public class OverlayView extends View implements SensorEventListener {
 				float orientation[] = new float[3];
 				SensorManager.getOrientation(cameraRotation, orientation);
 				rotationX = orientation[0];
-				rotationY = orientation[1];
+				rotationY = (float) (orientation[1] + Math
+						.toRadians(Global.Y_AXIS_CORRECTION));
 				rotationZ = (float) (orientation[2] + Math
-						.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
+						.toRadians(Global.Z_AXIS_CORRECTION));
 
 				// apply filter
 				filterQueueX[filterQueueIdx % filterQueueLen] = orientation[0];
-				filterQueueY[filterQueueIdx % filterQueueLen] = orientation[1];
+				filterQueueY[filterQueueIdx % filterQueueLen] = (float) (orientation[1] + Math
+						.toRadians(Global.Z_AXIS_CORRECTION));
 				filterQueueZ[filterQueueIdx % filterQueueLen] = (float) (orientation[2] + Math
-						.toRadians(Global.GALAXY_TAB_Z_AXIS_CORRECTION));
+						.toRadians(Global.Z_AXIS_CORRECTION));
 				filterQueueIdx++;
 				if (filterQueueIdx > filterQueueLen) {
 					rotationX = 0;
@@ -334,9 +334,6 @@ public class OverlayView extends View implements SensorEventListener {
 			text.append(
 					String.format("Longitude : %.5f",
 							slopeCurMyLocation.getLongitude())).append("\n");
-			text.append(
-					String.format("Altitude  : %.2f",
-							slopeCurMyLocation.getAltitude())).append("\n");
 		} else {
 			text.append("Current Position").append("\n");
 			text.append(String.format("Latitude  : unknown")).append("\n");

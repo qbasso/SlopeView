@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -28,6 +29,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -65,8 +70,8 @@ public class ArtutActivity extends Activity {
 		Bitmap screen;
 		OutputStream fout = null;
 		String filename;
-		filename = String.format("/SlopeView_" + String.valueOf(System.currentTimeMillis())
-				+ ".jpg");
+		filename = String.format("/SlopeView_"
+				+ String.valueOf(System.currentTimeMillis()) + ".jpg");
 		File imageFile = new File(dir + filename);
 		View screenview = (View) findViewById(android.R.id.content);
 		screenview.setDrawingCacheEnabled(true);
@@ -126,6 +131,7 @@ public class ArtutActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		initErrorValues();
 		setContentView(R.layout.main);
 		FrameLayout arViewPane = (FrameLayout) findViewById(R.id.ar_view_pane);
 		arDisplay = new ArDisplayView(getApplicationContext());
@@ -160,13 +166,15 @@ public class ArtutActivity extends Activity {
 				showDialog(DIALOG_YES_NO_MESSAGE);
 			}
 		};
-
 		Global.isShowVersionText = true;
 		handler.sendEmptyMessageDelayed(0, 1000);
+	}
 
-		ArtutActivity.this.sendBroadcast(new Intent(
-				Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://"
-						+ Global.ARTUTIMAGE_CAPTURE_PATH)));
+	private void initErrorValues() {
+		SharedPreferences pref = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		Global.Y_AXIS_CORRECTION = pref.getFloat("y_axis_error", 0);
+		Global.Z_AXIS_CORRECTION = pref.getFloat("z_axis_error", 0);
 	}
 
 	private PendingIntent prepareIntent() {
@@ -191,8 +199,6 @@ public class ArtutActivity extends Activity {
 		}
 		return false;
 	}
-
-	
 
 	@Override
 	protected void onPause() {
@@ -268,6 +274,25 @@ public class ArtutActivity extends Activity {
 	public void onConfigurationChanged(Configuration newConfig) {
 		// TODO Auto-generated method stub
 		super.onConfigurationChanged(newConfig);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater menuInflater = getMenuInflater();
+		menuInflater.inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		switch (item.getItemId()) {
+		case R.id.menu_calibrate:
+			startActivity(new Intent(this, CalibrateActivity.class));
+			return true;
+
+		default:
+			return super.onMenuItemSelected(featureId, item);
+		}
 	}
 
 }
