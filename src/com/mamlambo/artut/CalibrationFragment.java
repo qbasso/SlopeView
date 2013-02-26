@@ -71,7 +71,7 @@ public class CalibrationFragment extends Fragment implements
 				mSaveButton.setEnabled(true);
 				mAxisErrorY = computeError(mOrientationDataY, 0f);
 				mAxisErrorZ = computeError(mOrientationDataZ, 90f);
-				if (Math.abs(mAxisErrorY) > 5f || Math.abs(mAxisErrorZ) > 5f) {
+				if (Math.abs(mAxisErrorZ) > 5f) { //|| Math.abs(mAxisErrorY) > 5f ) {
 					mAxisErrorY = mAxisErrorZ = 0f;
 					mHeader.setText("Error bigger than 5 deegress please repeat");
 					mSaveButton.setText("Repeat");
@@ -116,6 +116,7 @@ public class CalibrationFragment extends Fragment implements
 			public void onClick(View v) {
 				if (v.getTag() != null && v.getTag().equals("Repeat")) {
 					v.setTag("Save");
+					((TextView)v).setText("Save");
 					mesureErrors();
 				} else {
 					SharedPreferences.Editor pref = PreferenceManager
