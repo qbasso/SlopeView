@@ -245,15 +245,16 @@ public class OverlayView extends View implements SensorEventListener {
 				float orientation[] = new float[3];
 				SensorManager.getOrientation(cameraRotation, orientation);
 				rotationX = orientation[0];
-				rotationY = (float) (orientation[1]); //+Math
-//						.toRadians(Global.Y_AXIS_CORRECTION));
+				rotationY = (float) (orientation[1]); // +Math
+				// .toRadians(Global.Y_AXIS_CORRECTION));
 				rotationZ = (float) (orientation[2] + Math
 						.toRadians(Global.Z_AXIS_CORRECTION));
 
 				// apply filter
 				filterQueueX[filterQueueIdx % filterQueueLen] = orientation[0];
-				filterQueueY[filterQueueIdx % filterQueueLen] = (float) (orientation[1]); //+ Math
-//						.toRadians(Global.Y_AXIS_CORRECTION));
+				filterQueueY[filterQueueIdx % filterQueueLen] = (float) (orientation[1]); // +
+																							// Math
+				// .toRadians(Global.Y_AXIS_CORRECTION));
 				filterQueueZ[filterQueueIdx % filterQueueLen] = (float) (orientation[2] - Math
 						.toRadians(Global.Z_AXIS_CORRECTION));
 				filterQueueIdx++;
@@ -280,7 +281,8 @@ public class OverlayView extends View implements SensorEventListener {
 				float dy = (float) ((this.getHeight() / verticalFOV) * Math
 						.toDegrees(rotationY));
 				float dHeightPerDegree = this.getHeight() / verticalFOV;
-				mSlopeLineOffset = (float) (Math.toDegrees(Math.atan(1.0f/7.0f)) * dHeightPerDegree);
+				mSlopeLineOffset = (float) (Math.toDegrees(Math
+						.atan(1.0f / 7.0f)) * dHeightPerDegree);
 				float dRotateDegree = Global.slopeHeightOfMesureType[Global.slopeMeasureType]
 						/ dHeightPerDegree;
 				float dUnitDegree = (float) Math
@@ -364,7 +366,8 @@ public class OverlayView extends View implements SensorEventListener {
 		startPosition.x = -this.getWidth();
 		targetPosition.x = this.getWidth() * 2;
 
-		startPosition.y = (int) (startPosition.y + Global.slopeHeightOfMesureType[Global.slopeMeasureType]);//+ mSlopeLineOffset);
+		startPosition.y = (int) (startPosition.y + Global.slopeHeightOfMesureType[Global.slopeMeasureType]);// +
+																											// mSlopeLineOffset);
 		targetPosition.y = startPosition.y;
 
 		canvas.drawLine(targetPosition.x, targetPosition.y, startPosition.x,
@@ -381,7 +384,6 @@ public class OverlayView extends View implements SensorEventListener {
 		// slopeLineMeter = (float)(slopeMeasureMeter * Math.tan(1.0f /
 		// slopeMeasureMeter) / Math.tan(Math.abs(rotationY)));
 		slopeLineMeter = (float) (1.0f / Math.tan(Math.abs(rotationY)));
-
 		if (slopeLineMeter > Global.slopeMeasureMeter[Global.slopeMeasureType] - 0.07
 				&& slopeLineMeter < Global.slopeMeasureMeter[Global.slopeMeasureType] + 0.07)
 			slopeLineMeter = Global.slopeMeasureMeter[Global.slopeMeasureType];
