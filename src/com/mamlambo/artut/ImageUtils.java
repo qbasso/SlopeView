@@ -1,7 +1,19 @@
 package com.mamlambo.artut;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class ImageUtils.
+ */
 public class ImageUtils {
 
+	/**
+	 * Decode yu v420 sp.
+	 *
+	 * @param yuvData the yuv data
+	 * @param dataWidth the data width
+	 * @param dataHeight the data height
+	 * @return the int[]
+	 */
 	public static int[] decodeYUV420SP(byte[] yuvData, int dataWidth, int dataHeight) {
 		final int frameSize = dataWidth * dataHeight;
 		int[] rgb = new int[frameSize];
